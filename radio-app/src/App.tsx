@@ -4,6 +4,7 @@ import StationList from "./components/StationList";
 import Player from "./components/Player";
 import WorldMap from "./components/WorldMap";
 import PlacesProvider, { placesGeoLookup } from "./components/PlacesProvider";
+import FavoritesPanel from "./components/FavoritesPanel";
 import { getChannel } from "./api/radioGarden";
 import "./App.css";
 
@@ -43,6 +44,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [mapPin, setMapPin] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [wikiOpen, setWikiOpen] = useState(false);
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiData, setWikiData] = useState<{
     stationName: string;
@@ -129,6 +131,8 @@ function App() {
               onTogglePlay={togglePlay}
               onWikiClick={handleWikiClick}
               wikiOpen={wikiOpen}
+              favoritesOpen={favoritesOpen}
+              onToggleFavorites={() => setFavoritesOpen((v) => !v)}
             />
           </div>
 
@@ -141,6 +145,12 @@ function App() {
               />
             </div>
           )}
+
+          <FavoritesPanel
+            open={favoritesOpen}
+            onClose={() => setFavoritesOpen(false)}
+            onSelectStation={handleSelectChannel}
+          />
 
           {wikiOpen && currentChannel && (
             <div className="floating-wiki-panel">
