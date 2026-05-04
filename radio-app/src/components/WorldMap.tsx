@@ -77,12 +77,13 @@ export default function WorldMap({ pin, onSelectPlace }: Props) {
 
     for (const p of places) {
       const marker = L.circleMarker([p.lat, p.lng], {
-        radius: 3,
-        weight: 0,
+        radius: 5,
+        weight: 1,
+        color: "#4f46e5",
         fillColor: "#4f46e5",
-        fillOpacity: 0.55,
+        fillOpacity: 0.7,
       });
-      marker.bindTooltip(p.title, { direction: "top", offset: [0, -2] });
+      marker.bindTooltip(p.title, { direction: "top", offset: [0, -4] });
       marker.on("click", () => onSelectRef.current(p.id, p.title));
       cluster.addLayer(marker);
     }
@@ -107,7 +108,7 @@ export default function WorldMap({ pin, onSelectPlace }: Props) {
       markerRef.current = null;
     }
     if (pin) {
-      const marker = L.marker([pin.lat, pin.lng], { icon: pinIcon }).addTo(map);
+      const marker = L.marker([pin.lat, pin.lng], { icon: pinIcon, interactive: false }).addTo(map);
       markerRef.current = marker;
       map.flyTo([pin.lat, pin.lng], 6, { duration: 1.5 });
     }
