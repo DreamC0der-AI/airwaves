@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { getPlace } from "../api/radioGarden";
+import FavoriteButton from "./FavoriteButton";
 
 interface StationItem {
   page: {
@@ -15,6 +16,11 @@ interface Props {
   placeId: string;
   placeName: string;
   onSelectStation: (channelId: string, title: string) => void;
+}
+
+function channelIdFromUrl(url: string): string {
+  const parts = url.split("/").filter(Boolean);
+  return parts[parts.length - 1];
 }
 
 export default function StationList({ placeId, placeName, onSelectStation }: Props) {
@@ -52,8 +58,7 @@ export default function StationList({ placeId, placeName, onSelectStation }: Pro
   }, [placeId]);
 
   const handleClick = (station: StationItem) => {
-    const parts = station.page.url.split("/").filter(Boolean);
-    const id = parts[parts.length - 1]; // last segment is the channel ID
+    const id = channelIdFromUrl(station.page.url);
     onSelectStation(id, station.page.title);
   };
 
@@ -66,19 +71,27 @@ export default function StationList({ placeId, placeName, onSelectStation }: Pro
       <h3>{placeName}</h3>
       <p className="station-count">{stations.length} stations</p>
       <ul>
-        {stations.map((station) => (
-          <li key={station.page.url} onClick={() => handleClick(station)}>
-            <div className="station-info">
-              <span className="station-name">{station.page.title}</span>
-              {station.page.country && (
-                <span className="station-subtitle">{station.page.country.title}</span>
-              )}
-            </div>
-            <svg className="play-icon" viewBox="0 0 24 24" width="20" height="20">
-              <polygon points="6,3 20,12 6,21" fill="currentColor" />
-            </svg>
-          </li>
-        ))}
+        {stations.map((station) => {
+          const id = channelIdFromUrl(station.page.url);
+          return (
+            <li key={station.page.url} onClick={() => handleClick(station)}>
+              <FavoriteButton
+                channelId={id}
+                channelName={station.page.title}
+                className="row-fav"
+              />
+              <div className="station-info">
+                <span className="station-name">{station.page.title}</span>
+                {station.page.country && (
+                  <span className="station-subtitle">{station.page.country.title}</span>
+                )}
+              </div>
+              <svg className="play-icon" viewBox="0 0 24 24" width="20" height="20">
+                <polygon points="6,3 20,12 6,21" fill="currentColor" />
+              </svg>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
