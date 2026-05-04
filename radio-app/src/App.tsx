@@ -87,6 +87,46 @@ function App() {
     });
   }, []);
 
+  // On first mount, hydrate the playing station from `?s=<channelId>` if present.
+  // The channel's name comes from the upstream channel endpoint, so the URL stays
+  // a clean "id only" share link.
+  const hydratedFromUrlRef = useRef(false);
+  useEffect(() => {
+    if (hydratedFromUrlRef.current) return;
+    hydratedFromUrlRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("s");
+    if (!id || !/^[a-zA-Z0-9_-]+$/.test(id)) return;
+    // No `cancelled` guard: the ref above already de-dupes against StrictMode's
+    // double-invoke, and a setState on a truly-unmounted root is a harmless no-op.
+    (async () => {
+      try {
+        const data = await getChannel(id);
+        const title: string = data?.data?.title ?? "Station";
+        setCurrentChannel({ id, name: title });
+        setIsPlaying(true);
+        saveRecentStation(id, title);
+      } catch {
+        /* invalid id or network error — leave URL alone, user can still browse */
+      }
+    })();
+  }, []);
+
+  // Mirror the current channel into the URL so the page can be shared/bookmarked.
+  // replaceState (not pushState) keeps the back button intuitive — it goes back
+  // to the previous page, not to each station you sampled.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (currentChannel?.id) {
+      if (url.searchParams.get("s") === currentChannel.id) return;
+      url.searchParams.set("s", currentChannel.id);
+    } else {
+      if (!url.searchParams.has("s")) return;
+      url.searchParams.delete("s");
+    }
+    window.history.replaceState({}, "", url.toString());
+  }, [currentChannel?.id]);
+
   // Global ESC: close any open panel, in topmost-first order.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
