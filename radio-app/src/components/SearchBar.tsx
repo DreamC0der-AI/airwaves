@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { searchStations } from "../api/radioGarden";
+import FavoriteButton from "./FavoriteButton";
 
 interface SearchHit {
   _id?: string;
@@ -48,9 +49,11 @@ interface Props {
   onTogglePlay: () => void;
   onWikiClick: () => void;
   wikiOpen: boolean;
+  favoritesOpen: boolean;
+  onToggleFavorites: () => void;
 }
 
-export default function SearchBar({ onSelectPlace, onSelectChannel, currentChannelId, currentChannelName, isPlaying, onTogglePlay, onWikiClick, wikiOpen }: Props) {
+export default function SearchBar({ onSelectPlace, onSelectChannel, currentChannelId, currentChannelName, isPlaying, onTogglePlay, onWikiClick, wikiOpen, favoritesOpen, onToggleFavorites }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchHit[]>([]);
   const [loading, setLoading] = useState(false);
@@ -198,6 +201,22 @@ export default function SearchBar({ onSelectPlace, onSelectChannel, currentChann
               <polygon points="6,3 20,12 6,21" fill="currentColor" />
             </svg>
           )}
+        </button>
+        <FavoriteButton
+          channelId={currentChannelId}
+          channelName={currentChannelName}
+          className="topbar-fav"
+        />
+        <button
+          className={`ctrl-btn fav-list ${favoritesOpen ? "active" : ""}`}
+          onClick={onToggleFavorites}
+          title="Favorites"
+          aria-pressed={favoritesOpen}
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path d="M6 3h12a1 1 0 011 1v17l-7-4-7 4V4a1 1 0 011-1z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+            <path d="M9.5 10.5l1.6 1.6 3.4-3.6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
         <button className={`wiki-btn ${wikiOpen ? "active" : ""}`} onClick={onWikiClick} title="Wiki">
           <svg viewBox="0 0 24 24" width="16" height="16">
