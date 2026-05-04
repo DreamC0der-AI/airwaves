@@ -945,3 +945,84 @@
   padding: 0 4px;
 }
 .station-list-close:hover { color: #222; }
+
+/* === Mobile layout (≤640px) === */
+@media (max-width: 640px) {
+  /* Topbar — full width, larger touch targets */
+  .floating-top-panel {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+  }
+  .floating-top-panel .search-bar {
+    width: 100%;
+    max-width: none;
+  }
+  .search-bar .sidebar-controls-row {
+    flex-wrap: nowrap;
+    gap: 6px;
+    padding: 8px 8px;
+  }
+  .search-input-wrapper {
+    flex: 1;
+    min-width: 0;
+  }
+  .ctrl-btn,
+  .wiki-btn,
+  .fav-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Search-results dropdown — full-width below the input */
+  .search-results,
+  .search-results.recent-list {
+    width: 100%;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+  }
+
+  /* Bottom-sheet container rules — apply to all three panels */
+  .floating-station-list,
+  .floating-wiki-panel,
+  .floating-favorites-panel {
+    position: fixed;
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    max-height: 75vh;
+    transform: none;
+    z-index: 1100;
+    animation: airwaves-slide-up 200ms ease-out both;
+  }
+
+  /* Inner card — rounded top, square bottom */
+  .floating-station-list .station-list,
+  .wiki-card,
+  .favorites-card {
+    border-radius: 18px 18px 0 0;
+    max-height: 75vh;
+    overflow-y: auto;
+    padding-top: 6px;
+  }
+
+  /* Decorative drag handle on each sheet */
+  .floating-station-list .station-list::before,
+  .wiki-card::before,
+  .favorites-card::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    margin: 6px auto 8px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.18);
+  }
+}
+
+@keyframes airwaves-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
