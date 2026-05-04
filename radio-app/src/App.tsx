@@ -38,6 +38,12 @@ async function fetchWikiSummary(query: string): Promise<WikiSummary | null> {
   }
 }
 
+function isMobileViewport(): boolean {
+  return typeof window !== "undefined"
+    && typeof window.matchMedia === "function"
+    && window.matchMedia("(max-width: 640px)").matches;
+}
+
 function App() {
   const [selectedPlace, setSelectedPlace] = useState<{ id: string; name: string } | null>(null);
   const [currentChannel, setCurrentChannel] = useState<{ id: string; name: string } | null>(null);
@@ -55,6 +61,10 @@ function App() {
 
   const handleSelectPlace = useCallback((placeId: string, title: string) => {
     setSelectedPlace({ id: placeId, name: title });
+    if (isMobileViewport()) {
+      setWikiOpen(false);
+      setFavoritesOpen(false);
+    }
   }, []);
 
   const handleSelectChannel = useCallback((channelId: string, title: string) => {
@@ -65,6 +75,17 @@ function App() {
   }, []);
 
   const togglePlay = useCallback(() => setIsPlaying((p) => !p), []);
+
+  const handleToggleFavorites = useCallback(() => {
+    setFavoritesOpen((prev) => {
+      const next = !prev;
+      if (next && isMobileViewport()) {
+        setSelectedPlace(null);
+        setWikiOpen(false);
+      }
+      return next;
+    });
+  }, []);
 
   // Global ESC: close any open panel, in topmost-first order.
   useEffect(() => {
@@ -109,6 +130,10 @@ function App() {
     if (!currentChannel?.id) return;
     if (wikiOpen) { setWikiOpen(false); return; }
     setWikiOpen(true);
+    if (isMobileViewport()) {
+      setSelectedPlace(null);
+      setFavoritesOpen(false);
+    }
     if (wikiData && wikiData.stationName === currentChannel.name) return;
     setWikiLoading(true);
     try {
@@ -144,7 +169,7 @@ function App() {
               onWikiClick={handleWikiClick}
               wikiOpen={wikiOpen}
               favoritesOpen={favoritesOpen}
-              onToggleFavorites={() => setFavoritesOpen((v) => !v)}
+              onToggleFavorites={handleToggleFavorites}
             />
           </div>
 
