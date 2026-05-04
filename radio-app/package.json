@@ -11,23 +11,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "concurrently": "^9.2.1",
-    "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "groq-sdk": "^1.1.2",
     "leaflet": "^1.9.4",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "tsx": "^4.21.0"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@testing-library/dom": "^10.4.1",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
     "@types/leaflet": "^1.9.21",
-    "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -39,7 +30,6 @@
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
     "vite": "^8.0.4",
-    "vite-plugin-static-copy": "^4.0.1",
     "vitest": "^2.1.9"
   }
 }

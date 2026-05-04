@@ -10,7 +10,7 @@ interface Pin {
 
 interface Props {
   pin: Pin | null;
-  resizeToken?: number;
+  onSelectPlace?: (placeId: string, title: string) => void;
 }
 
 const pinIcon = L.divIcon({
@@ -20,7 +20,7 @@ const pinIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-export default function WorldMap({ pin, resizeToken }: Props) {
+export default function WorldMap({ pin }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -67,14 +67,6 @@ export default function WorldMap({ pin, resizeToken }: Props) {
       map.flyTo([pin.lat, pin.lng], 6, { duration: 1.5 });
     }
   }, [pin]);
-
-  useEffect(() => {
-    if (resizeToken === undefined) return;
-    const map = mapRef.current;
-    if (!map) return;
-    const t = setTimeout(() => map.invalidateSize(), 250);
-    return () => clearTimeout(t);
-  }, [resizeToken]);
 
   return <div ref={containerRef} className="world-map" />;
 }
