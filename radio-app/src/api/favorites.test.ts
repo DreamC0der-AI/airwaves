@@ -7,11 +7,13 @@ import {
   subscribe,
   CACHE_KEY,
   MAX_FAVORITES,
+  _resyncFromStorage,
 } from "./favorites";
 
 describe("favorites storage", () => {
   beforeEach(() => {
     localStorage.removeItem(CACHE_KEY);
+    _resyncFromStorage();
   });
 
   it("loadFavorites returns [] when nothing stored", () => {
@@ -59,6 +61,7 @@ describe("favorites storage", () => {
 
   it("schema-version mismatch is treated as empty", () => {
     localStorage.setItem(CACHE_KEY, JSON.stringify({ v: 999, items: [{ id: "x", name: "X", addedAt: 1 }] }));
+    _resyncFromStorage();
     expect(loadFavorites()).toEqual([]);
   });
 

@@ -13,15 +13,15 @@ interface CacheShape {
   items: Favorite[];
 }
 
-function read(): Favorite[] {
+function readFromStorage(): Favorite[] {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return [];
+    if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as CacheShape;
-    if (parsed.v !== SCHEMA_VERSION) return [];
-    return Array.isArray(parsed.items) ? parsed.items : [];
+    if (parsed.v !== SCHEMA_VERSION) return EMPTY;
+    return Array.isArray(parsed.items) ? parsed.items : EMPTY;
   } catch {
-    return [];
+    return EMPTY;
   }
 }
 
@@ -34,21 +34,32 @@ function write(items: Favorite[]): void {
   }
 }
 
+// Stable empty reference for useSyncExternalStore.
+const EMPTY: Favorite[] = [];
+
+// Cached snapshot. useSyncExternalStore requires getSnapshot to return the same
+// reference until the data actually changes.
+let snapshot: Favorite[] = readFromStorage();
+
+function refreshSnapshot(next: Favorite[]): void {
+  snapshot = next.length === 0 ? EMPTY : next;
+}
+
 const listeners = new Set<() => void>();
 function notify(): void {
   for (const l of listeners) l();
 }
 
 export function loadFavorites(): Favorite[] {
-  return read();
+  return snapshot;
 }
 
 export function isFavorite(id: string): boolean {
-  return read().some((f) => f.id === id);
+  return snapshot.some((f) => f.id === id);
 }
 
 export function toggleFavorite(id: string, name: string): Favorite[] {
-  const current = read();
+  const current = snapshot;
   const without = current.filter((f) => f.id !== id);
   let next: Favorite[];
   if (without.length === current.length) {
@@ -58,15 +69,22 @@ export function toggleFavorite(id: string, name: string): Favorite[] {
     next = without;
   }
   write(next);
+  refreshSnapshot(next);
   notify();
-  return next;
+  return snapshot;
 }
 
 export function removeFavorite(id: string): Favorite[] {
-  const next = read().filter((f) => f.id !== id);
+  const next = snapshot.filter((f) => f.id !== id);
   write(next);
+  refreshSnapshot(next);
   notify();
-  return next;
+  return snapshot;
+}
+
+// For tests: re-read from storage after the test mutates localStorage directly.
+export function _resyncFromStorage(): void {
+  refreshSnapshot(readFromStorage());
 }
 
 export function subscribe(listener: () => void): () => void {

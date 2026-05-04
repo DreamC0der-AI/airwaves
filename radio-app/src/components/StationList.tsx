@@ -71,10 +71,10 @@ export default function StationList({ placeId, placeName, onSelectStation }: Pro
       <h3>{placeName}</h3>
       <p className="station-count">{stations.length} stations</p>
       <ul>
-        {stations.map((station) => {
+        {stations.map((station, i) => {
           const id = channelIdFromUrl(station.page.url);
           return (
-            <li key={station.page.url} onClick={() => handleClick(station)}>
+            <li key={`${id}-${i}`} onClick={() => handleClick(station)}>
               <FavoriteButton
                 channelId={id}
                 channelName={station.page.title}
