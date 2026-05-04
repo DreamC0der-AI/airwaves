@@ -16,6 +16,7 @@ interface Props {
   placeId: string;
   placeName: string;
   onSelectStation: (channelId: string, title: string) => void;
+  onClose: () => void;
 }
 
 function channelIdFromUrl(url: string): string {
@@ -23,7 +24,7 @@ function channelIdFromUrl(url: string): string {
   return parts[parts.length - 1];
 }
 
-export default function StationList({ placeId, placeName, onSelectStation }: Props) {
+export default function StationList({ placeId, placeName, onSelectStation, onClose }: Props) {
   const [stations, setStations] = useState<StationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -68,8 +69,18 @@ export default function StationList({ placeId, placeName, onSelectStation }: Pro
 
   return (
     <div className="station-list">
-      <h3>{placeName}</h3>
-      <p className="station-count">{stations.length} stations</p>
+      <div className="station-list-header">
+        <div>
+          <h3>{placeName}</h3>
+          <p className="station-count">{stations.length} stations</p>
+        </div>
+        <button
+          className="station-list-close"
+          onClick={onClose}
+          aria-label="Close station list"
+          title="Close"
+        >×</button>
+      </div>
       <ul>
         {stations.map((station, i) => {
           const id = channelIdFromUrl(station.page.url);

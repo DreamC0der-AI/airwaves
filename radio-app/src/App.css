@@ -271,61 +271,37 @@
   color: #7a5cff;
 }
 
-.ctrl-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.ctrl-btn:hover {
-  transform: scale(1.08);
-}
-
-.ctrl-btn:active {
-  transform: scale(0.95);
-}
-
-.ctrl-btn.play {
-  background: linear-gradient(135deg, #7a5cff, #5c8fff);
-}
-
+/* === Unified topbar icon buttons === */
+.ctrl-btn,
 .wiki-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
-  background: linear-gradient(135deg, #ffd84d, #ffbf00);
-  color: #fff;
+  background: transparent;
+  color: #555;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(255, 191, 0, 0.28);
-  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  transition: color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
-.wiki-btn:hover,
-.wiki-btn.active {
-  transform: scale(1.06);
-  box-shadow: 0 4px 12px rgba(255, 191, 0, 0.38);
-  filter: saturate(1.05);
+.ctrl-btn:hover,
+.wiki-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #222;
 }
 
-.ctrl-btn.translate {
-  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+.ctrl-btn:active,
+.wiki-btn:active {
+  transform: scale(0.92);
 }
 
-.ctrl-btn.translate.active {
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-}
+/* Active / pressed state — distinct accent per button so the user can tell at a glance. */
+.ctrl-btn.play { color: #4f46e5; }
+.ctrl-btn.fav-list.active { color: #4f46e5; }
+.wiki-btn.active { color: #f59e0b; }
 
 .ctrl-lang select {
   background: #f5f5f5;
@@ -793,13 +769,13 @@
   font-family: inherit !important;
 }
 
-/* === Favorites — topbar buttons === */
+/* === Favorites — topbar heart button (matches the unified .ctrl-btn shape) === */
 .fav-btn {
   border: none;
-  background: rgba(255,255,255,0.85);
-  color: #777;
+  background: transparent;
+  color: #555;
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: 50%;
   width: 36px;
   height: 36px;
   display: inline-flex;
@@ -809,7 +785,7 @@
 }
 .fav-btn:hover:not(:disabled) {
   color: #e0245e;
-  background: rgba(255,255,255,1);
+  background: rgba(0,0,0,0.05);
 }
 .fav-btn:disabled {
   opacity: 0.4;
@@ -821,22 +797,6 @@
 .fav-btn.pulse {
   transform: scale(1.18);
 }
-
-.ctrl-btn.fav-list {
-  border: none;
-  background: rgba(255,255,255,0.85);
-  color: #555;
-  cursor: pointer;
-  border-radius: 999px;
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.15s ease, background 0.15s ease;
-}
-.ctrl-btn.fav-list:hover { background: rgba(255,255,255,1); }
-.ctrl-btn.fav-list.active { color: #4f46e5; }
 
 /* === Favorites — per-row heart in StationList === */
 .station-list ul li .fav-btn.row-fav {
@@ -958,3 +918,30 @@
 .fav-row-play {
   color: #555;
 }
+
+/* === StationList close-button header === */
+.station-list-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.station-list-header h3 {
+  margin: 0;
+}
+.station-list-header .station-count {
+  margin: 2px 0 0;
+  color: #777;
+  font-size: 13px;
+}
+.station-list-close {
+  border: none;
+  background: none;
+  color: #777;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.station-list-close:hover { color: #222; }

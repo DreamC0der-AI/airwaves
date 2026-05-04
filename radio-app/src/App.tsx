@@ -66,6 +66,18 @@ function App() {
 
   const togglePlay = useCallback(() => setIsPlaying((p) => !p), []);
 
+  // Global ESC: close any open panel, in topmost-first order.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (favoritesOpen) { setFavoritesOpen(false); return; }
+      if (wikiOpen) { setWikiOpen(false); return; }
+      if (selectedPlace) { setSelectedPlace(null); return; }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [favoritesOpen, wikiOpen, selectedPlace]);
+
   const fetchingRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!currentChannel?.id) {
@@ -142,6 +154,7 @@ function App() {
                 placeId={selectedPlace.id}
                 placeName={selectedPlace.name}
                 onSelectStation={handleSelectChannel}
+                onClose={() => setSelectedPlace(null)}
               />
             </div>
           )}
