@@ -6,11 +6,27 @@ interface Props {
   stationName: string;
   playing: boolean;
   onTogglePlay: () => void;
+  onPlayingChange?: (playing: boolean) => void;
 }
 
-export default function Player({ channelId, stationName, playing }: Props) {
+export default function Player({ channelId, stationName, playing, onPlayingChange }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Mirror the audio element's real state up to the parent — this catches
+  // browser autoplay rejection, OS media-key pauses, network drops, etc.
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !onPlayingChange) return;
+    const onPlay = () => onPlayingChange(true);
+    const onPause = () => onPlayingChange(false);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    return () => {
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+    };
+  }, [onPlayingChange]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -28,13 +44,16 @@ export default function Player({ channelId, stationName, playing }: Props) {
               : `Playback error: ${err.message}`
           : `Playback error: ${err.message}`;
       setError(reason);
+      // play() rejection doesn't fire a 'pause' event (audio never moved off paused),
+      // so explicitly tell the parent we aren't playing.
+      onPlayingChange?.(false);
     });
 
     return () => {
       audio.pause();
       audio.src = "";
     };
-  }, [channelId]);
+  }, [channelId, onPlayingChange]);
 
   useEffect(() => {
     const audio = audioRef.current;

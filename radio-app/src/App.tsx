@@ -265,6 +265,7 @@ function App() {
               stationName={currentChannel?.name ?? ""}
               playing={isPlaying}
               onTogglePlay={togglePlay}
+              onPlayingChange={setIsPlaying}
             />
           </div>
         </div>
