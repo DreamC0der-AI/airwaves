@@ -209,6 +209,36 @@
   50% { box-shadow: 0 0 16px 6px rgba(122, 92, 255, 0.7), 0 2px 8px rgba(0,0,0,0.3); }
 }
 
+/* === Neon waveform strip === */
+.waveform-strip {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--safe-bottom);
+  height: 60px;
+  z-index: 1000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+.waveform-strip.active {
+  opacity: 1;
+}
+
+.waveform-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Never collide with a bottom sheet on mobile (sheets are bottom-anchored there). */
+@media (max-width: 640px) {
+  .app.sheet-open .waveform-strip {
+    display: none;
+  }
+}
+
 /* === Top controls === */
 .map-topbar {
   position: absolute;

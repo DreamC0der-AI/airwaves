@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import SearchBar, { saveRecentStation } from "./components/SearchBar";
 import StationList from "./components/StationList";
 import Player from "./components/Player";
+import Waveform from "./components/Waveform";
 import WorldMap from "./components/WorldMap";
 import PlacesProvider, { placesGeoLookup } from "./components/PlacesProvider";
 import FavoritesPanel from "./components/FavoritesPanel";
@@ -51,6 +52,7 @@ function App() {
   const [mapPin, setMapPin] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [wikiOpen, setWikiOpen] = useState(false);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [wikiLoading, setWikiLoading] = useState(false);
   const [wikiData, setWikiData] = useState<{
     stationName: string;
@@ -192,11 +194,15 @@ function App() {
     }
   }, [currentChannel?.id, currentChannel?.name, wikiOpen, wikiData?.stationName]);
 
+  const sheetOpen = !!selectedPlace || wikiOpen || favoritesOpen;
+
   return (
     <PlacesProvider>
-      <div className="app no-sidebar">
+      <div className={`app no-sidebar${sheetOpen ? " sheet-open" : ""}`}>
         <div className="main-content full-width">
           <WorldMap pin={mapPin} onSelectPlace={handleSelectPlace} />
+
+          <Waveform analyser={analyser} playing={isPlaying} />
 
           <div className="floating-top-panel">
             <SearchBar
@@ -266,6 +272,7 @@ function App() {
               playing={isPlaying}
               onTogglePlay={togglePlay}
               onPlayingChange={setIsPlaying}
+              onAnalyser={setAnalyser}
             />
           </div>
         </div>

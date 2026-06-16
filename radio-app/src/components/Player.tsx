@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { getStreamUrl } from "../api/radioGarden";
 
 interface Props {
@@ -7,11 +7,39 @@ interface Props {
   playing: boolean;
   onTogglePlay: () => void;
   onPlayingChange?: (playing: boolean) => void;
+  onAnalyser?: (analyser: AnalyserNode) => void;
 }
 
-export default function Player({ channelId, stationName, playing, onPlayingChange }: Props) {
+export default function Player({ channelId, stationName, playing, onPlayingChange, onAnalyser }: Props) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [error, setError] = useState<string | null>(null);
+  // The Web Audio graph is built once per audio element (a MediaElementSource
+  // can only be created once). This ref guards against re-creation.
+  const graphRef = useRef<{ ctx: AudioContext; analyser: AnalyserNode } | null>(null);
+
+  // Build the analyser graph lazily, inside the play path (a user gesture), so
+  // the AudioContext is allowed to start. Any failure is swallowed: audio still
+  // plays, the waveform simply never appears.
+  const ensureGraph = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || graphRef.current) return;
+    try {
+      const AC: typeof AudioContext =
+        window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AC) return;
+      const ctx = new AC();
+      const source = ctx.createMediaElementSource(audio);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.8;
+      source.connect(analyser);
+      analyser.connect(ctx.destination);
+      graphRef.current = { ctx, analyser };
+      onAnalyser?.(analyser);
+    } catch {
+      /* analysis unavailable — playback is unaffected */
+    }
+  }, [onAnalyser]);
 
   // Mirror the audio element's real state up to the parent — this catches
   // browser autoplay rejection, OS media-key pauses, network drops, etc.
@@ -32,8 +60,13 @@ export default function Player({ channelId, stationName, playing, onPlayingChang
     const audio = audioRef.current;
     if (!audio || !channelId) return;
     setError(null);
+    // crossOrigin must be set before src so the proxied (ACAO: *) stream loads
+    // as CORS-clean, which is what lets the AnalyserNode read real samples.
+    audio.crossOrigin = "anonymous";
     audio.src = getStreamUrl(channelId);
     audio.volume = 0.8;
+    ensureGraph();
+    graphRef.current?.ctx.resume().catch(() => { /* resumed lazily on next play */ });
     audio.play().catch((err: DOMException | Error) => {
       const reason =
         err instanceof DOMException
@@ -53,11 +86,12 @@ export default function Player({ channelId, stationName, playing, onPlayingChang
       audio.pause();
       audio.src = "";
     };
-  }, [channelId, onPlayingChange]);
+  }, [channelId, onPlayingChange, ensureGraph]);
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    if (playing) graphRef.current?.ctx.resume().catch(() => { /* no-op */ });
     if (playing && audio.paused && audio.src) {
       audio.play().catch(() => { /* error already surfaced via load handler */ });
     } else if (!playing && !audio.paused) {
