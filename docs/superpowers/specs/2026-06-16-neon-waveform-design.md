@@ -40,12 +40,16 @@ common **vertical-bar equalizer**, which reads instantly as "music playing."
 
 - Renders `<canvas>` inside `.waveform-strip`; DPR-scaled for retina.
 - Each frame, read `analyser.getByteFrequencyData(buf)`.
-- `BAR_COUNT` (56) bars span the width. Bar `i` maps to an **exponential** slice
-  of the lower `SPECTRUM_USE` (0.66) of the spectrum
-  (`idx = (i/(n-1))^1.8 * usableBins`) so bass-heavy radio still spreads across
-  the bars instead of clumping at the left.
-- Magnitude → height with `GAIN` (1.9, since radio is quiet), clamped 0..1, plus
-  a tiny animated idle shimmer above `FLOOR` (0.05) so quiet passages still move.
+- **Bar count is derived from the live canvas width** (`floor(width / SLOT_PX)`,
+  `SLOT_PX` 13, min 12) so bars keep a consistent on-screen size on any viewport —
+  ~30 on a phone, more on desktop — instead of a fixed count that goes hairline on
+  mobile. The `heights` buffer is reallocated in `resize()` when the count changes.
+- Bar `i` maps to an **exponential** slice of the lower `SPECTRUM_USE` (0.66) of
+  the spectrum (`idx = (i/(n-1))^1.8 * usableBins`) so bass-heavy radio still
+  spreads across the bars instead of clumping at the left.
+- Magnitude → height with `GAIN` (1.25) and a perceptual `LIFT` gamma (0.7) so
+  quiet talk radio reads taller, clamped 0..1, plus a tiny animated idle shimmer
+  above `FLOOR` (0.05) so quiet passages still move.
 - **Per-bar temporal smoothing:** `heights[i] += (target - heights[i]) * SMOOTH`
   (0.28) — lively but not flickery.
 - Draw slim gray (`#6b7280`) pill bars **mirrored around the centre line** (grow
