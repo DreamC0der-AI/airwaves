@@ -214,8 +214,9 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: var(--safe-bottom);
-  height: 60px;
+  /* Lifted clear of the very bottom edge so the wave sits higher on screen. */
+  bottom: calc(var(--safe-bottom) + 24px);
+  height: 150px;
   z-index: 1000;
   pointer-events: none;
   opacity: 0;

@@ -6,118 +6,97 @@ interface Props {
 }
 
 const NEON = "#7a5cff";
-// How flat the real signal can be (deviation from the 127.5 midline, in 0-255
-// byte units) before we treat the stream as "not analysable" and fall back to a
-// generated ripple. ~2 is just above the noise floor of a silent buffer.
-const FLAT_THRESHOLD = 2.2;
-const FLAT_HOLD_MS = 1000;
 
-/**
- * A neon flowing waveform pinned to the bottom of the screen. While `playing`
- * and given an `analyser`, it draws the live audio's time-domain shape. If the
- * stream is audible but not analysable (some SHOUTcast/ICY redirects read as
- * flat), it falls back to a synthetic ripple so there is always some motion.
- */
+// iOS9 Siri-style rendering: a few layered sine curves whose *amplitude* is
+// driven by a heavily-smoothed loudness envelope (not per-sample data), so the
+// wave breathes with the music instead of twitching. Each curve is tapered by a
+// bell envelope so it bulges in the middle and fades to nothing at the edges.
+// Reference: kopiro/siriwave (src/ios9-curve.ts).
+const GRAPH_X = 2; // x runs from -GRAPH_X..+GRAPH_X across the width
+const ATT_FACTOR = 4; // bell-envelope sharpness
+const POINTS = 100; // samples per curve stroke
+
+// Per-curve character: relative amplitude, wave number, phase speed (sign =
+// direction), and stroke alpha. Layered with additive blending for the glow.
+const CURVES = [
+  { amp: 1.0, k: 2.4, speed: 0.85, alpha: 0.95, width: 2.4 },
+  { amp: 0.72, k: 3.2, speed: -1.05, alpha: 0.55, width: 1.7 },
+  { amp: 0.5, k: 1.7, speed: 0.6, alpha: 0.4, width: 1.4 },
+];
+
+const att = (x: number) => Math.pow(ATT_FACTOR / (ATT_FACTOR + x * x), ATT_FACTOR);
+
 export default function Waveform({ analyser, playing }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !playing) return;
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const buf = analyser ? new Uint8Array(analyser.fftSize) : null;
+    const phases = CURVES.map((_, i) => i * 1.3);
+    let level = 0.06; // smoothed loudness envelope (also the quiet-idle floor)
     let raf = 0;
-    // Timestamp (perf clock) since which the signal has looked flat; 0 = not flat.
-    let flatSince = 0;
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      canvas.width = Math.max(1, Math.round(w * dpr));
-      canvas.height = Math.max(1, Math.round(h * dpr));
+      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
 
-    // Fill `out` (length = samples) with values in [-1, 1].
-    const sampleReal = (out: Float32Array): boolean => {
-      if (!analyser || !buf) return false;
+    // RMS loudness of the time-domain signal, normalised to ~0..1.
+    const loudness = (): number => {
+      if (!analyser || !buf) return 0;
       analyser.getByteTimeDomainData(buf);
-      let peak = 0;
-      const step = buf.length / out.length;
-      for (let i = 0; i < out.length; i++) {
-        const v = (buf[Math.floor(i * step)] - 127.5) / 127.5;
-        out[i] = v;
-        const dev = Math.abs(buf[Math.floor(i * step)] - 127.5);
-        if (dev > peak) peak = dev;
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) {
+        const v = (buf[i] - 128) / 128;
+        sum += v * v;
       }
-      return peak >= FLAT_THRESHOLD;
+      return Math.sqrt(sum / buf.length);
     };
 
-    const sampleSynthetic = (out: Float32Array, t: number) => {
-      const phase = t * 0.0024;
-      for (let i = 0; i < out.length; i++) {
-        const x = i / out.length;
-        out[i] =
-          0.5 * Math.sin(x * Math.PI * 6 + phase) +
-          0.28 * Math.sin(x * Math.PI * 14 - phase * 1.7);
-      }
-    };
-
-    const SAMPLES = 220;
-    const data = new Float32Array(SAMPLES);
-
-    const draw = (t: number) => {
-      // Real audio when it has signal; fall back to a generated ripple if the
-      // stream stays flat (audible but not analysable) for FLAT_HOLD_MS.
-      if (sampleReal(data)) {
-        flatSince = 0;
-      } else {
-        if (!flatSince) flatSince = t;
-        if (t - flatSince >= FLAT_HOLD_MS) sampleSynthetic(data, t);
-      }
+    const draw = () => {
+      // Smooth the envelope hard so size changes are gentle, and keep a small
+      // floor so the wave always drifts (vibe even on quiet/flat streams).
+      const target = Math.min(1, Math.max(0.06, loudness() * 3.2));
+      level += (target - level) * 0.05;
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
-      const mid = h / 2;
-      const amp = h * 0.42;
+      const mid = h * 0.5;
+      const heightMax = h * 0.5 * 0.8;
+
       ctx.clearRect(0, 0, w, h);
-
-      const trace = () => {
-        ctx.beginPath();
-        for (let i = 0; i < SAMPLES; i++) {
-          const x = (i / (SAMPLES - 1)) * w;
-          const y = mid + data[i] * amp;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      };
-
-      // Wide faint bloom pass, then a crisp core pass — the layered glow.
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.strokeStyle = NEON;
       ctx.shadowColor = NEON;
 
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 6;
-      ctx.shadowBlur = 18;
-      trace();
+      CURVES.forEach((c, ci) => {
+        phases[ci] = (phases[ci] + c.speed * 0.04) % (Math.PI * 2);
+        ctx.globalAlpha = c.alpha;
+        ctx.lineWidth = c.width;
+        ctx.shadowBlur = 14;
+        ctx.beginPath();
+        for (let i = 0; i < POINTS; i++) {
+          const px = i / (POINTS - 1);
+          const x = -GRAPH_X + px * 2 * GRAPH_X;
+          const y = mid - level * heightMax * c.amp * att(x) * Math.sin(c.k * x - phases[ci]);
+          if (i === 0) ctx.moveTo(px * w, y);
+          else ctx.lineTo(px * w, y);
+        }
+        ctx.stroke();
+      });
 
-      ctx.globalAlpha = 1;
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 8;
-      trace();
-
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-
+      ctx.restore();
       raf = requestAnimationFrame(draw);
     };
 

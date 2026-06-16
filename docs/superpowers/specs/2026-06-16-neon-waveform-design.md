@@ -32,25 +32,31 @@ CORS-clean stream and the Web Audio `AnalyserNode` can read real samples.
 - Failure handling: wrap graph creation in try/catch. On any failure, skip it —
   audio still plays, the waveform simply never appears.
 
-### 2. `Waveform.tsx` (new)
+### 2. `Waveform.tsx` (new) — iOS9 Siri-style rendering
 
-- Renders `<canvas>` inside `.waveform-strip`.
-- A `requestAnimationFrame` loop runs only while `playing` and an analyser exists:
-  - Read `analyser.getByteTimeDomainData(buf)` (time-domain → oscilloscope shape →
-    the single flowing line).
-  - Stroke a path across the canvas width, sample → y.
-  - Neon: `#7a5cff` stroke with `shadowBlur` glow, drawn as two layered strokes
-    (a wide faint bloom pass + a crisp core pass). DPR-scaled for retina.
-- **Flat-data detection + synthetic fallback:** track the peak deviation from the
-  127.5 midline over recent frames. If it stays below a small threshold for ~1s
-  while `playing` (a stream that is audible but not analysable), switch the loop to
-  draw a generated sine ripple (sum of two sines scrolling over time) so there is
-  always some motion. Switch back automatically if real data returns.
-- When `playing` is false: stop the rAF loop and let the strip fade to 0 opacity
-  via CSS. No idle CPU.
-- If no analyser is available at all, render `null`.
-- `?wavedemo=1` query flag (dev-only, removed before commit) feeds synthetic data
-  so the look can be screenshotted headlessly where audio cannot play.
+Revised after first-pass feedback ("too low, too violent, make it more abstract").
+A raw time-domain trace is too jittery, so instead of drawing samples we drive a
+few smooth sine curves by a *loudness envelope*. Reference:
+[kopiro/siriwave](https://github.com/kopiro/siriwave) `src/ios9-curve.ts`.
+
+- Renders `<canvas>` inside `.waveform-strip`; DPR-scaled for retina.
+- Each frame, derive one **loudness** value = RMS of `getByteTimeDomainData`,
+  normalised (`*3.2`, clamped 0..1).
+- **Heavy temporal smoothing:** `level += (target - level) * 0.05`, with a small
+  floor (`0.06`) so the wave always drifts gently — this is also the
+  always-some-vibe hedge (quiet or non-analysable streams still move). The floor
+  replaces the earlier explicit flat-detection fallback.
+- Draw `CURVES` (3 layered sine curves, differing amplitude/wave-number/phase
+  speed/alpha). For each point, `x ∈ [-2, 2]` across the width and
+  `y = mid - level * heightMax * amp * att(x) * sin(k·x - phase)`, where the bell
+  envelope `att(x) = (4/(4 + x²))⁴` makes curves bulge in the centre and fade to
+  the edges. Phases scroll per frame at per-curve speeds.
+- Neon `#7a5cff`, `globalCompositeOperation = "lighter"` + `shadowBlur` for the
+  layered glow.
+- When `playing` is false: stop the rAF loop; the strip fades to 0 via CSS.
+- If no analyser exists, render `null`.
+- A `?wavedemo=1` flag (used only during development to screenshot the look
+  headlessly, since audio can't play in headless Chrome) is removed before commit.
 
 ### 3. Placement — `App.tsx` + `App.css`
 
@@ -59,7 +65,8 @@ CORS-clean stream and the Web Audio `AnalyserNode` can read real samples.
 - `App` adds a `sheet-open` class to `.app` when
   `selectedPlace || wikiOpen || favoritesOpen`.
 - `.waveform-strip`:
-  - `position: fixed`, `left/right: 0`, `bottom: var(--safe-bottom)`, height ~60px.
+  - `position: fixed`, `left/right: 0`, `bottom: calc(var(--safe-bottom) + 24px)`
+    (lifted clear of the bottom edge so the wave sits higher), height ~150px.
   - `pointer-events: none`.
   - z-index above the map (`.world-map`) but below the floating panels
     (panels are ≥1090; strip ~1000).
