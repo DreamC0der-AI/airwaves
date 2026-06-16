@@ -13,10 +13,12 @@ const BAR_COLOR = "#6b7280"; // neutral modern gray
 const SLOT_PX = 13; // target px per bar (bar + gap); bar count is derived from width
 const MIN_BARS = 12;
 const BAR_WIDTH_RATIO = 0.4; // bar width as a fraction of its slot
-const GAIN = 1.25; // frequency magnitude -> height
-const LIFT = 0.7; // perceptual gamma (<1 lifts quiet audio so bars read taller)
+const GAIN = 1.4; // frequency magnitude -> height
+const LIFT = 0.65; // perceptual gamma (<1 lifts quiet audio so bars read taller)
 const FLOOR = 0.05; // idle height so bars never fully die
-const SMOOTH = 0.28; // per-bar follow speed (higher = snappier)
+// Asymmetric follow: snap up fast on a peak, fall gently — the classic VU "jump".
+const ATTACK = 0.55;
+const RELEASE = 0.14;
 const SPECTRUM_USE = 0.66; // fraction of the spectrum to spread across the bars
 const MAX_H = 0.82; // tallest bar (tip-to-tip) as a fraction of the strip height
 // Music/radio is bass-heavy; without a tilt the low bars pin at max and freeze.
@@ -85,7 +87,7 @@ export default function Waveform({ analyser, playing }: Props) {
 
       for (let i = 0; i < barCount; i++) {
         const target = barTarget(i, barCount);
-        heights[i] += (target - heights[i]) * SMOOTH;
+        heights[i] += (target - heights[i]) * (target > heights[i] ? ATTACK : RELEASE);
         // At rest the bar collapses to a round dot (height = width); mirrored
         // around the centre line so it grows up and down.
         const bh = Math.max(barW, heights[i] * maxH);

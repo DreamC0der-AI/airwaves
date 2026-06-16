@@ -50,8 +50,10 @@ common **vertical-bar equalizer**, which reads instantly as "music playing."
 - Magnitude → height with `GAIN` (1.25) and a perceptual `LIFT` gamma (0.7) so
   quiet talk radio reads taller, clamped 0..1, plus a tiny animated idle shimmer
   above `FLOOR` (0.05) so quiet passages still move.
-- **Per-bar temporal smoothing:** `heights[i] += (target - heights[i]) * SMOOTH`
-  (0.28) — lively but not flickery.
+- **Asymmetric per-bar smoothing:** fast `ATTACK` (0.55) on the way up, slow
+  `RELEASE` (0.14) on the way down — the classic VU "jump and fall." Paired with a
+  light analyser `smoothingTimeConstant` (0.55, set in Player) so transients
+  aren't double-averaged into a flat jiggle.
 - Draw slim gray (`#6b7280`) pill bars **mirrored around the centre line** (grow
   up and down), no glow — modern minimal look. Bars are thin
   (`BAR_WIDTH_RATIO` 0.34 of their slot, 64 bars) and collapse to a round dot at

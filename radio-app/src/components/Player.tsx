@@ -31,11 +31,13 @@ export default function Player({ channelId, stationName, playing, onPlayingChang
       const source = ctx.createMediaElementSource(audio);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 1024;
-      analyser.smoothingTimeConstant = 0.8;
-      // Wider dB window than the default (-100/-30) so loud bass bins aren't
-      // clamped at 255 — that ceiling is what froze the equalizer bars.
-      analyser.minDecibels = -90;
-      analyser.maxDecibels = -10;
+      // Light analyser smoothing so transients survive — the visualizer adds its
+      // own attack/release. Too much here (the 0.8 default) damps out the "jump."
+      analyser.smoothingTimeConstant = 0.55;
+      // dB window: loud bins aren't clamped at 255 (that froze the bars), but the
+      // ceiling is low enough (-20) that normal radio levels drive tall bars.
+      analyser.minDecibels = -85;
+      analyser.maxDecibels = -20;
       source.connect(analyser);
       analyser.connect(ctx.destination);
       graphRef.current = { ctx, analyser };
