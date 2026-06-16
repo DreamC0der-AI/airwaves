@@ -32,6 +32,10 @@ export default function Player({ channelId, stationName, playing, onPlayingChang
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 1024;
       analyser.smoothingTimeConstant = 0.8;
+      // Wider dB window than the default (-100/-30) so loud bass bins aren't
+      // clamped at 255 — that ceiling is what froze the equalizer bars.
+      analyser.minDecibels = -90;
+      analyser.maxDecibels = -10;
       source.connect(analyser);
       analyser.connect(ctx.destination);
       graphRef.current = { ctx, analyser };

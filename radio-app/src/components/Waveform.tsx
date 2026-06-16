@@ -11,11 +11,15 @@ const NEON = "#7a5cff";
 // to a slice of the frequency spectrum. Bar heights are smoothed per-bar so the
 // motion is lively but not flickery.
 const BAR_COUNT = 56;
-const GAIN = 1.9; // frequency magnitude -> height (radio audio is quiet)
+const GAIN = 1.25; // frequency magnitude -> height
 const FLOOR = 0.05; // idle height so bars never fully die
 const SMOOTH = 0.28; // per-bar follow speed (higher = snappier)
 const SPECTRUM_USE = 0.66; // fraction of the spectrum to spread across the bars
 const MAX_H = 0.82; // tallest bar as a fraction of the strip height
+// Music/radio is bass-heavy; without a tilt the low bars pin at max and freeze.
+// Tilt tames lows and boosts highs so the whole field moves: lows ×0.7, highs ×2.3.
+const TILT_BASE = 0.7;
+const TILT_SLOPE = 1.6;
 
 export default function Waveform({ analyser, playing }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -50,7 +54,8 @@ export default function Waveform({ analyser, playing }: Props) {
       // Average a tiny window for stability.
       const a = buf[idx] ?? 0;
       const b = buf[Math.min(usable - 1, idx + 1)] ?? a;
-      const v = ((a + b) / 2 / 255) * GAIN;
+      const tilt = TILT_BASE + TILT_SLOPE * frac;
+      const v = ((a + b) / 2 / 255) * GAIN * tilt;
       // A faint idle shimmer so quiet passages still breathe.
       const idle = FLOOR + 0.03 * (0.5 + 0.5 * Math.sin(t * 0.05 + i * 0.5));
       return Math.min(1, Math.max(idle, v));
