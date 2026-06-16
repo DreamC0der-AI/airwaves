@@ -32,31 +32,28 @@ CORS-clean stream and the Web Audio `AnalyserNode` can read real samples.
 - Failure handling: wrap graph creation in try/catch. On any failure, skip it —
   audio still plays, the waveform simply never appears.
 
-### 2. `Waveform.tsx` (new) — iOS9 Siri-style rendering
+### 2. `Waveform.tsx` (new) — equalizer bars
 
-Revised after first-pass feedback ("too low, too violent, make it more abstract").
-A raw time-domain trace is too jittery, so instead of drawing samples we drive a
-few smooth sine curves by a *loudness envelope*. Reference:
-[kopiro/siriwave](https://github.com/kopiro/siriwave) `src/ios9-curve.ts`.
+Iterated through a few looks based on feedback (raw time-domain trace → too
+jittery; iOS9 Siri sine envelope → too tame for quiet radio). Final form is the
+common **vertical-bar equalizer**, which reads instantly as "music playing."
 
 - Renders `<canvas>` inside `.waveform-strip`; DPR-scaled for retina.
-- Each frame, derive one **loudness** value = RMS of `getByteTimeDomainData`,
-  normalised (`*3.2`, clamped 0..1).
-- **Heavy temporal smoothing:** `level += (target - level) * 0.05`, with a small
-  floor (`0.06`) so the wave always drifts gently — this is also the
-  always-some-vibe hedge (quiet or non-analysable streams still move). The floor
-  replaces the earlier explicit flat-detection fallback.
-- Draw `CURVES` (3 layered sine curves, differing amplitude/wave-number/phase
-  speed/alpha). For each point, `x ∈ [-2, 2]` across the width and
-  `y = mid - level * heightMax * amp * att(x) * sin(k·x - phase)`, where the bell
-  envelope `att(x) = (4/(4 + x²))⁴` makes curves bulge in the centre and fade to
-  the edges. Phases scroll per frame at per-curve speeds.
-- Neon `#7a5cff`, `globalCompositeOperation = "lighter"` + `shadowBlur` for the
-  layered glow.
+- Each frame, read `analyser.getByteFrequencyData(buf)`.
+- `BAR_COUNT` (56) bars span the width. Bar `i` maps to an **exponential** slice
+  of the lower `SPECTRUM_USE` (0.66) of the spectrum
+  (`idx = (i/(n-1))^1.8 * usableBins`) so bass-heavy radio still spreads across
+  the bars instead of clumping at the left.
+- Magnitude → height with `GAIN` (1.9, since radio is quiet), clamped 0..1, plus
+  a tiny animated idle shimmer above `FLOOR` (0.05) so quiet passages still move.
+- **Per-bar temporal smoothing:** `heights[i] += (target - heights[i]) * SMOOTH`
+  (0.28) — lively but not flickery.
+- Draw rounded-top neon `#7a5cff` bars rising from the bottom baseline, with
+  `shadowBlur` glow. Tallest bar is `MAX_H` (0.82) of the strip height.
 - When `playing` is false: stop the rAF loop; the strip fades to 0 via CSS.
 - If no analyser exists, render `null`.
-- A `?wavedemo=1` flag (used only during development to screenshot the look
-  headlessly, since audio can't play in headless Chrome) is removed before commit.
+- A `?wavedemo=1` flag (dev-only, for headless screenshots since audio can't play
+  in headless Chrome) is removed before commit.
 
 ### 3. Placement — `App.tsx` + `App.css`
 

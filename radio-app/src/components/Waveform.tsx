@@ -7,27 +7,15 @@ interface Props {
 
 const NEON = "#7a5cff";
 
-// iOS9 Siri-style rendering: a few layered sine curves whose *amplitude* is
-// driven by a heavily-smoothed loudness envelope (not per-sample data), so the
-// wave breathes with the music instead of twitching. Each curve is tapered by a
-// bell envelope so it bulges in the middle and fades to nothing at the edges.
-// Reference: kopiro/siriwave (src/ios9-curve.ts).
-const GRAPH_X = 1.8; // x runs from -GRAPH_X..+GRAPH_X across the width
-const ATT_FACTOR = 3; // bell-envelope sharpness (lower = wider bulge)
-const POINTS = 110; // samples per curve stroke
-const GAIN = 7; // loudness -> amplitude scaling (radio audio is quiet)
-const FLOOR = 0.14; // idle amplitude so it always visibly moves
-const SMOOTH = 0.1; // envelope follow speed (higher = livelier)
-
-// Per-curve character: relative amplitude, wave number, phase speed (sign =
-// direction), and stroke alpha. Layered with additive blending for the glow.
-const CURVES = [
-  { amp: 1.0, k: 3.2, speed: 1.1, alpha: 0.95, width: 2.4 },
-  { amp: 0.78, k: 4.6, speed: -1.4, alpha: 0.55, width: 1.7 },
-  { amp: 0.6, k: 2.3, speed: 0.8, alpha: 0.4, width: 1.4 },
-];
-
-const att = (x: number) => Math.pow(ATT_FACTOR / (ATT_FACTOR + x * x), ATT_FACTOR);
+// Classic equalizer: vertical neon bars rising from a baseline, each bar mapped
+// to a slice of the frequency spectrum. Bar heights are smoothed per-bar so the
+// motion is lively but not flickery.
+const BAR_COUNT = 56;
+const GAIN = 1.9; // frequency magnitude -> height (radio audio is quiet)
+const FLOOR = 0.05; // idle height so bars never fully die
+const SMOOTH = 0.28; // per-bar follow speed (higher = snappier)
+const SPECTRUM_USE = 0.66; // fraction of the spectrum to spread across the bars
+const MAX_H = 0.82; // tallest bar as a fraction of the strip height
 
 export default function Waveform({ analyser, playing }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -38,10 +26,10 @@ export default function Waveform({ analyser, playing }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const buf = analyser ? new Uint8Array(analyser.fftSize) : null;
-    const phases = CURVES.map((_, i) => i * 1.3);
-    let level = 0.06; // smoothed loudness envelope (also the quiet-idle floor)
+    const buf = analyser ? new Uint8Array(analyser.frequencyBinCount) : null;
+    const heights = new Float32Array(BAR_COUNT); // smoothed 0..1 per bar
     let raf = 0;
+    let t = 0;
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -52,54 +40,50 @@ export default function Waveform({ analyser, playing }: Props) {
     resize();
     window.addEventListener("resize", resize);
 
-    // RMS loudness of the time-domain signal, normalised to ~0..1.
-    const loudness = (): number => {
-      if (!analyser || !buf) return 0;
-      analyser.getByteTimeDomainData(buf);
-      let sum = 0;
-      for (let i = 0; i < buf.length; i++) {
-        const v = (buf[i] - 128) / 128;
-        sum += v * v;
-      }
-      return Math.sqrt(sum / buf.length);
+    // Target height (0..1) for bar `i`, from an exponential slice of the spectrum
+    // so bass-heavy radio still spreads across the width.
+    const usable = buf ? Math.floor(buf.length * SPECTRUM_USE) : 0;
+    const barTarget = (i: number): number => {
+      if (!analyser || !buf) return FLOOR;
+      const frac = i / (BAR_COUNT - 1);
+      const idx = Math.floor(Math.pow(frac, 1.8) * (usable - 1));
+      // Average a tiny window for stability.
+      const a = buf[idx] ?? 0;
+      const b = buf[Math.min(usable - 1, idx + 1)] ?? a;
+      const v = ((a + b) / 2 / 255) * GAIN;
+      // A faint idle shimmer so quiet passages still breathe.
+      const idle = FLOOR + 0.03 * (0.5 + 0.5 * Math.sin(t * 0.05 + i * 0.5));
+      return Math.min(1, Math.max(idle, v));
     };
 
     const draw = () => {
-      // Smooth the envelope hard so size changes are gentle, and keep a small
-      // floor so the wave always drifts (vibe even on quiet/flat streams).
-      const target = Math.min(1, Math.max(FLOOR, loudness() * GAIN));
-      level += (target - level) * SMOOTH;
+      t += 1;
+      if (buf && analyser) analyser.getByteFrequencyData(buf);
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
-      const mid = h * 0.5;
-      const heightMax = h * 0.5 * 0.9;
+      const maxH = h * MAX_H;
+      const slot = w / BAR_COUNT;
+      const barW = Math.max(2, slot * 0.5);
 
       ctx.clearRect(0, 0, w, h);
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.strokeStyle = NEON;
+      ctx.fillStyle = NEON;
       ctx.shadowColor = NEON;
+      ctx.shadowBlur = 12;
 
-      CURVES.forEach((c, ci) => {
-        phases[ci] = (phases[ci] + c.speed * 0.04) % (Math.PI * 2);
-        ctx.globalAlpha = c.alpha;
-        ctx.lineWidth = c.width;
-        ctx.shadowBlur = 14;
+      for (let i = 0; i < BAR_COUNT; i++) {
+        const target = barTarget(i);
+        heights[i] += (target - heights[i]) * SMOOTH;
+        const bh = Math.max(2, heights[i] * maxH);
+        const x = i * slot + (slot - barW) / 2;
+        const y = h - bh;
+        const r = Math.min(barW / 2, 4);
         ctx.beginPath();
-        for (let i = 0; i < POINTS; i++) {
-          const px = i / (POINTS - 1);
-          const x = -GRAPH_X + px * 2 * GRAPH_X;
-          const y = mid - level * heightMax * c.amp * att(x) * Math.sin(c.k * x - phases[ci]);
-          if (i === 0) ctx.moveTo(px * w, y);
-          else ctx.lineTo(px * w, y);
-        }
-        ctx.stroke();
-      });
+        ctx.roundRect(x, y, barW, bh, r);
+        ctx.fill();
+      }
 
-      ctx.restore();
+      ctx.shadowBlur = 0;
       raf = requestAnimationFrame(draw);
     };
 
