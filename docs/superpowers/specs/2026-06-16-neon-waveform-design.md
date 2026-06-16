@@ -73,7 +73,10 @@ common **vertical-bar equalizer**, which reads instantly as "music playing."
   `selectedPlace || wikiOpen || favoritesOpen`.
 - `.waveform-strip`:
   - `position: fixed`, `left/right: 0`, `bottom: calc(var(--safe-bottom) + 24px)`
-    (lifted clear of the bottom edge so the wave sits higher), height ~150px.
+    (lifted clear of the bottom edge so the wave sits higher). Height is
+    viewport-proportional — `clamp(140px, 26vh, 260px)` — so the centre-mirrored
+    bars (which only reach half as far from the midline) still have real room to
+    jump on a tall phone.
   - `pointer-events: none`.
   - z-index above the map (`.world-map`) but below the floating panels
     (panels are ≥1090; strip ~1000).

@@ -13,8 +13,8 @@ const BAR_COLOR = "#6b7280"; // neutral modern gray
 const SLOT_PX = 13; // target px per bar (bar + gap); bar count is derived from width
 const MIN_BARS = 12;
 const BAR_WIDTH_RATIO = 0.4; // bar width as a fraction of its slot
-const GAIN = 1.4; // frequency magnitude -> height
-const LIFT = 0.65; // perceptual gamma (<1 lifts quiet audio so bars read taller)
+const GAIN = 2.0; // frequency magnitude -> height
+const LIFT = 0.6; // perceptual gamma (<1 lifts quiet audio so bars read taller)
 const FLOOR = 0.05; // idle height so bars never fully die
 // Asymmetric follow: snap up fast on a peak, fall gently — the classic VU "jump".
 const ATTACK = 0.55;
