@@ -948,11 +948,12 @@
 
 /* === Mobile layout (≤640px) === */
 @media (max-width: 640px) {
-  /* Topbar — full width, larger touch targets */
+  /* Topbar — full width, larger touch targets. The top offset clears the iOS
+     status bar via the safe-area inset (see --safe-top in index.css). */
   .floating-top-panel {
     left: 8px;
     right: 8px;
-    top: 8px;
+    top: calc(8px + var(--safe-top));
   }
   .floating-top-panel .search-bar {
     width: 100%;
@@ -961,7 +962,7 @@
   .search-bar .sidebar-controls-row {
     flex-wrap: nowrap;
     gap: 6px;
-    padding: 8px 8px;
+    padding: 6px 8px;
   }
   .search-input-wrapper {
     flex: 1;
@@ -970,8 +971,8 @@
   .ctrl-btn,
   .wiki-btn,
   .fav-btn {
-    width: 40px;
-    height: 40px;
+    width: 38px;
+    height: 38px;
   }
 
   /* Search-results dropdown — full-width below the input */
@@ -991,6 +992,8 @@
     left: 0;
     right: 0;
     bottom: 0;
+    /* Clear Safari's bottom URL bar / home indicator. */
+    padding-bottom: var(--safe-bottom);
     width: 100vw;
     max-height: 75vh;
     transform: none;
@@ -1031,7 +1034,7 @@
 @media (max-width: 640px) {
   .search-bar .sidebar-controls-row {
     flex-wrap: wrap;
-    row-gap: 8px;
+    row-gap: 6px;
   }
   .search-input-wrapper {
     flex: 1 1 100%;
