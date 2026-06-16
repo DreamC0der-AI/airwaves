@@ -14,12 +14,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  overflow: hidden;
+}
+
+/* Lock the page to the viewport: this is a full-screen map app, so the document
+   itself must never scroll or pan. Pinning body to the viewport makes any stray
+   horizontal overflow impossible (the map and panels scroll internally). */
 body {
   margin: 0;
-  min-height: 100vh;
-  overflow-x: hidden;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #root {
-  min-height: 100vh;
+  width: 100%;
+  height: 100%;
 }
