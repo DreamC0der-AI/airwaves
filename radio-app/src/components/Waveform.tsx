@@ -5,17 +5,18 @@ interface Props {
   playing: boolean;
 }
 
-const NEON = "#7a5cff";
+const BAR_COLOR = "#6b7280"; // neutral modern gray
 
-// Classic equalizer: vertical neon bars rising from a baseline, each bar mapped
-// to a slice of the frequency spectrum. Bar heights are smoothed per-bar so the
+// Modern equalizer: slim gray bars mirrored from a center line, each mapped to a
+// slice of the frequency spectrum. Bar heights are smoothed per-bar so the
 // motion is lively but not flickery.
-const BAR_COUNT = 56;
+const BAR_COUNT = 64;
+const BAR_WIDTH_RATIO = 0.34; // bar width as a fraction of its slot (thin)
 const GAIN = 1.25; // frequency magnitude -> height
 const FLOOR = 0.05; // idle height so bars never fully die
 const SMOOTH = 0.28; // per-bar follow speed (higher = snappier)
 const SPECTRUM_USE = 0.66; // fraction of the spectrum to spread across the bars
-const MAX_H = 0.82; // tallest bar as a fraction of the strip height
+const MAX_H = 0.7; // tallest bar (tip-to-tip) as a fraction of the strip height
 // Music/radio is bass-heavy; without a tilt the low bars pin at max and freeze.
 // Tilt tames lows and boosts highs so the whole field moves: lows ×0.7, highs ×2.3.
 const TILT_BASE = 0.7;
@@ -67,28 +68,27 @@ export default function Waveform({ analyser, playing }: Props) {
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
+      const mid = h / 2;
       const maxH = h * MAX_H;
       const slot = w / BAR_COUNT;
-      const barW = Math.max(2, slot * 0.5);
+      const barW = Math.max(2, slot * BAR_WIDTH_RATIO);
 
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = NEON;
-      ctx.shadowColor = NEON;
-      ctx.shadowBlur = 12;
+      ctx.fillStyle = BAR_COLOR;
 
       for (let i = 0; i < BAR_COUNT; i++) {
         const target = barTarget(i);
         heights[i] += (target - heights[i]) * SMOOTH;
-        const bh = Math.max(2, heights[i] * maxH);
+        // At rest the bar collapses to a round dot (height = width); mirrored
+        // around the centre line so it grows up and down.
+        const bh = Math.max(barW, heights[i] * maxH);
         const x = i * slot + (slot - barW) / 2;
-        const y = h - bh;
-        const r = Math.min(barW / 2, 4);
+        const y = mid - bh / 2;
         ctx.beginPath();
-        ctx.roundRect(x, y, barW, bh, r);
+        ctx.roundRect(x, y, barW, bh, barW / 2);
         ctx.fill();
       }
 
-      ctx.shadowBlur = 0;
       raf = requestAnimationFrame(draw);
     };
 

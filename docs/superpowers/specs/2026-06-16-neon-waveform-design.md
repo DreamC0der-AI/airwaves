@@ -48,8 +48,12 @@ common **vertical-bar equalizer**, which reads instantly as "music playing."
   a tiny animated idle shimmer above `FLOOR` (0.05) so quiet passages still move.
 - **Per-bar temporal smoothing:** `heights[i] += (target - heights[i]) * SMOOTH`
   (0.28) — lively but not flickery.
-- Draw rounded-top neon `#7a5cff` bars rising from the bottom baseline, with
-  `shadowBlur` glow. Tallest bar is `MAX_H` (0.82) of the strip height.
+- Draw slim gray (`#6b7280`) pill bars **mirrored around the centre line** (grow
+  up and down), no glow — modern minimal look. Bars are thin
+  (`BAR_WIDTH_RATIO` 0.34 of their slot, 64 bars) and collapse to a round dot at
+  rest. Tip-to-tip max is `MAX_H` (0.7) of the strip height. A spectral tilt
+  (lows ×0.7 .. highs ×2.3) plus a widened analyser dB window (`-90/-10`, set in
+  Player) keep the whole field moving instead of pinning the bass bars.
 - When `playing` is false: stop the rAF loop; the strip fades to 0 via CSS.
 - If no analyser exists, render `null`.
 - A `?wavedemo=1` flag (dev-only, for headless screenshots since audio can't play
