@@ -12,16 +12,19 @@ const NEON = "#7a5cff";
 // wave breathes with the music instead of twitching. Each curve is tapered by a
 // bell envelope so it bulges in the middle and fades to nothing at the edges.
 // Reference: kopiro/siriwave (src/ios9-curve.ts).
-const GRAPH_X = 2; // x runs from -GRAPH_X..+GRAPH_X across the width
-const ATT_FACTOR = 4; // bell-envelope sharpness
-const POINTS = 100; // samples per curve stroke
+const GRAPH_X = 1.8; // x runs from -GRAPH_X..+GRAPH_X across the width
+const ATT_FACTOR = 3; // bell-envelope sharpness (lower = wider bulge)
+const POINTS = 110; // samples per curve stroke
+const GAIN = 7; // loudness -> amplitude scaling (radio audio is quiet)
+const FLOOR = 0.14; // idle amplitude so it always visibly moves
+const SMOOTH = 0.1; // envelope follow speed (higher = livelier)
 
 // Per-curve character: relative amplitude, wave number, phase speed (sign =
 // direction), and stroke alpha. Layered with additive blending for the glow.
 const CURVES = [
-  { amp: 1.0, k: 2.4, speed: 0.85, alpha: 0.95, width: 2.4 },
-  { amp: 0.72, k: 3.2, speed: -1.05, alpha: 0.55, width: 1.7 },
-  { amp: 0.5, k: 1.7, speed: 0.6, alpha: 0.4, width: 1.4 },
+  { amp: 1.0, k: 3.2, speed: 1.1, alpha: 0.95, width: 2.4 },
+  { amp: 0.78, k: 4.6, speed: -1.4, alpha: 0.55, width: 1.7 },
+  { amp: 0.6, k: 2.3, speed: 0.8, alpha: 0.4, width: 1.4 },
 ];
 
 const att = (x: number) => Math.pow(ATT_FACTOR / (ATT_FACTOR + x * x), ATT_FACTOR);
@@ -64,13 +67,13 @@ export default function Waveform({ analyser, playing }: Props) {
     const draw = () => {
       // Smooth the envelope hard so size changes are gentle, and keep a small
       // floor so the wave always drifts (vibe even on quiet/flat streams).
-      const target = Math.min(1, Math.max(0.06, loudness() * 3.2));
-      level += (target - level) * 0.05;
+      const target = Math.min(1, Math.max(FLOOR, loudness() * GAIN));
+      level += (target - level) * SMOOTH;
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
       const mid = h * 0.5;
-      const heightMax = h * 0.5 * 0.8;
+      const heightMax = h * 0.5 * 0.9;
 
       ctx.clearRect(0, 0, w, h);
       ctx.save();
