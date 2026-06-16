@@ -60,6 +60,14 @@ common **vertical-bar equalizer**, which reads instantly as "music playing."
   rest. Tip-to-tip max is `MAX_H` (0.7) of the strip height. A spectral tilt
   (lows ×0.7 .. highs ×2.3) plus a widened analyser dB window (`-90/-10`, set in
   Player) keep the whole field moving instead of pinning the bass bars.
+- **iOS Safari fallback:** WebKit does not feed a cross-origin, streamed
+  `<audio>` element's samples to the `AnalyserNode`, so `getByteFrequencyData`
+  reads ~0 on iOS Safari even while audio plays (Chrome/Android pipe it fine —
+  confirmed by side-by-side device tests). Each frame we take the spectrum peak;
+  if it stays below `FLAT_PEAK` (6) for `FLAT_TRIP` (30) frames while playing, we
+  switch `barTarget` to a synthetic layered-sine equalizer so the bars still
+  move, and switch back the instant real data returns. This makes the visual
+  work everywhere while staying truly audio-reactive where the engine allows it.
 - When `playing` is false: stop the rAF loop; the strip fades to 0 via CSS.
 - If no analyser exists, render `null`.
 - A `?wavedemo=1` flag (dev-only, for headless screenshots since audio can't play

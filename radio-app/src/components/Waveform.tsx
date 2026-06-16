@@ -25,6 +25,12 @@ const MAX_H = 0.82; // tallest bar (tip-to-tip) as a fraction of the strip heigh
 // Tilt tames lows and boosts highs so the whole field moves: lows ×0.7, highs ×2.3.
 const TILT_BASE = 0.7;
 const TILT_SLOPE = 1.6;
+// iOS Safari (WebKit) does not feed cross-origin streamed media to the
+// AnalyserNode, so getByteFrequencyData reads ~0 there even though audio plays.
+// When the signal stays flat while playing we drive a synthetic animation so the
+// bars still move; we switch back the instant real data appears.
+const FLAT_PEAK = 6; // peak byte below this = treat as "no signal"
+const FLAT_TRIP = 30; // consecutive flat frames (~0.5s) before going synthetic
 
 export default function Waveform({ analyser, playing }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -40,6 +46,8 @@ export default function Waveform({ analyser, playing }: Props) {
     let heights = new Float32Array(0); // smoothed 0..1 per bar
     let raf = 0;
     let t = 0;
+    let flatFrames = 0;
+    let synthetic = false; // true when real analyser data is unavailable (iOS)
 
     // Bar count is derived from the live width so bars keep a consistent on-screen
     // size across viewports (no hairline-dense bars on a narrow phone).
@@ -58,8 +66,13 @@ export default function Waveform({ analyser, playing }: Props) {
     // Target height (0..1) for bar `i` of `n`, from an exponential slice of the
     // spectrum so bass-heavy radio still spreads across the width.
     const barTarget = (i: number, n: number): number => {
-      if (!analyser || !buf) return FLOOR;
       const frac = n > 1 ? i / (n - 1) : 0;
+      // Synthetic mode (or no analyser): a believable layered-sine equalizer.
+      if (synthetic || !analyser || !buf) {
+        const env = Math.pow(Math.sin(frac * Math.PI), 0.5); // centre hump
+        const wob = 0.5 + 0.32 * Math.sin(t * 0.09 + i * 0.7) + 0.16 * Math.sin(t * 0.17 + i * 1.9);
+        return Math.min(1, Math.max(FLOOR, 0.22 + 0.62 * env * wob));
+      }
       const idx = Math.floor(Math.pow(frac, 1.8) * (usable - 1));
       const a = buf[idx] ?? 0;
       const b = buf[Math.min(usable - 1, idx + 1)] ?? a;
@@ -73,7 +86,21 @@ export default function Waveform({ analyser, playing }: Props) {
 
     const draw = () => {
       t += 1;
-      if (buf && analyser) analyser.getByteFrequencyData(buf);
+
+      // Read the spectrum and decide live-vs-synthetic from its peak.
+      let peak = 0;
+      if (buf && analyser) {
+        analyser.getByteFrequencyData(buf);
+        for (let k = 0; k < buf.length; k++) if (buf[k] > peak) peak = buf[k];
+        if (peak < FLAT_PEAK) {
+          if (++flatFrames >= FLAT_TRIP) synthetic = true;
+        } else {
+          flatFrames = 0;
+          synthetic = false;
+        }
+      } else {
+        synthetic = true;
+      }
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
