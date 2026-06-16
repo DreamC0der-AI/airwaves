@@ -13,18 +13,18 @@ const BAR_COLOR = "#6b7280"; // neutral modern gray
 const SLOT_PX = 13; // target px per bar (bar + gap); bar count is derived from width
 const MIN_BARS = 12;
 const BAR_WIDTH_RATIO = 0.4; // bar width as a fraction of its slot
-const GAIN = 2.0; // frequency magnitude -> height
-const LIFT = 0.6; // perceptual gamma (<1 lifts quiet audio so bars read taller)
+const GAIN = 1.3; // frequency magnitude -> height
+const LIFT = 0.8; // perceptual gamma (<1 lifts quiet audio so bars read taller)
 const FLOOR = 0.05; // idle height so bars never fully die
 // Asymmetric follow: snap up fast on a peak, fall gently — the classic VU "jump".
 const ATTACK = 0.55;
 const RELEASE = 0.14;
 const SPECTRUM_USE = 0.66; // fraction of the spectrum to spread across the bars
-const MAX_H = 0.82; // tallest bar (tip-to-tip) as a fraction of the strip height
+const MAX_H = 0.72; // tallest bar (tip-to-tip) as a fraction of the strip height
 // Music/radio is bass-heavy; without a tilt the low bars pin at max and freeze.
-// Tilt tames lows and boosts highs so the whole field moves: lows ×0.7, highs ×2.3.
-const TILT_BASE = 0.7;
-const TILT_SLOPE = 1.6;
+// Tilt tames lows and boosts highs so the whole field moves: lows ×0.55, highs ×2.25.
+const TILT_BASE = 0.55;
+const TILT_SLOPE = 1.7;
 // iOS Safari (WebKit) does not feed cross-origin streamed media to the
 // AnalyserNode, so getByteFrequencyData reads ~0 there even though audio plays.
 // When the signal stays flat while playing we drive a synthetic animation so the

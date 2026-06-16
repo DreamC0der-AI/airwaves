@@ -217,7 +217,7 @@
   /* Lifted clear of the very bottom edge so the wave sits higher on screen. */
   bottom: calc(var(--safe-bottom) + 24px);
   /* Max bar height scales with the viewport so the bars have real room to jump. */
-  height: clamp(140px, 26vh, 260px);
+  height: clamp(120px, 21vh, 220px);
   z-index: 1000;
   pointer-events: none;
   opacity: 0;
